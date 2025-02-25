@@ -92,12 +92,17 @@ module WooCommerce
     # data     - A hash of data to flatten and append
     #
     # Returns an endpoint string with the data appended
-    def add_query_params endpoint, data
+    def add_query_params(endpoint, data)
       return endpoint if data.nil? || data.empty?
 
       endpoint += "?" unless endpoint.include? "?"
       endpoint += "&" unless endpoint.end_with? "?"
-      endpoint + URI.encode(flatten_hash(data).join("&"))
+
+      flattened_params = flatten_hash(data)
+
+      query_string = URI.encode_www_form(flattened_params)
+
+      endpoint + query_string
     end
 
     # Internal: Get URL for requests
@@ -184,17 +189,17 @@ module WooCommerce
     # hash - A hash to flatten
     #
     # Returns an array full of key value paired strings
-    def flatten_hash hash
+    def flatten_hash(hash)
       hash.flat_map do |key, value|
         case value
         when Hash
           value.map do |inner_key, inner_value|
-            "#{key}[#{inner_key}]=#{inner_value}"
+            ["#{key}[#{inner_key}]", inner_value]
           end
         when Array
-          value.map { |inner_value| "#{key}[]=#{inner_value}" }
+          value.map { |inner_value| ["#{key}[]", inner_value] }
         else
-          "#{key}=#{value}"
+          [[key, value]]
         end
       end
     end
